@@ -58,6 +58,30 @@ const mostBlogs = (blogs) => {
   return mostBlogs
 }
 
+const mostLikes = (blogs) => {
+  var dict = {}
+  let mostLikes = {
+    author: "",
+    likes: 0
+  }
+
+  for (let i in blogs) {
+    if (blogs[i].author in dict) {
+      dict[blogs[i].author] = dict[blogs[i].author] + blogs[i].likes
+    } else {
+      dict[blogs[i].author] = blogs[i].likes
+    }
+  }
+  for (var author in dict) {
+    if (mostLikes.likes <= dict[author]) {
+      mostLikes.author = author
+      mostLikes.likes = dict[author]
+    }
+  }
+
+  return mostLikes
+}
+
 module.exports = {
-  dummy, totalLikes, favoriteBlog, mostBlogs
+  dummy, totalLikes, favoriteBlog, mostBlogs, mostLikes
 }
