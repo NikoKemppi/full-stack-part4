@@ -101,7 +101,7 @@ test('if the title or url is missing, then return bad request', async () => {
     .send(newBlog2)
     .expect(400)
 
-  const blogsAtEnd = await helper.blogsInDb()  
+  const blogsAtEnd = await helper.blogsInDb()
 
   expect(blogsAtEnd).toHaveLength(lengthBefore)
 })
@@ -123,6 +123,24 @@ test('delete a single blog post resourse', async () => {
   const contents = blogsAtEnd.map(b => b.title)
 
   expect(contents).not.toContain(blogToDelete.title)
+})
+
+test('update an already existing blog', async () => {
+  const blogsAtStart = await helper.blogsInDb()
+  const blogToUpdate = blogsAtStart[0]
+
+  const updatedBlog = {
+    likes: 15
+  }
+
+  await api
+    .put(`/api/blogs/${blogToUpdate.id}`)
+    .send(updatedBlog)
+    .expect('Content-Type', /application\/json/)
+
+  const blogsAtEnd = await helper.blogsInDb()
+  const blogAfterUpdate = blogsAtEnd[0]
+  expect(blogAfterUpdate.likes).toBe(15)
 })
 
 afterAll(async () => {
