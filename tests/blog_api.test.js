@@ -48,11 +48,10 @@ test('post creates new blog and adds to the list', async () => {
     .expect(201)
     .expect('Content-Type', /application\/json/)
 
-  const response = await api.get('/api/blogs')
+  const blogsAtEnd = await helper.blogsInDb()
+  const contents = blogsAtEnd.map(b => b.title)
 
-  const contents = response.body.map(r => r.title)
-
-  expect(response.body).toHaveLength(helper.initialBlogs.length + 1)
+  expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length + 1)
   expect(contents).toContainEqual('Microservice Architecture')
 })
 
@@ -69,8 +68,8 @@ test('if the posted blog lacks likes, then it is set to 0', async () => {
     .expect(201)
     .expect('Content-Type', /application\/json/)
 
-  const response = await api.get('/api/blogs')
-  const addedBlog = response.body[response.body.length - 1]
+  const blogsAtEnd = await helper.blogsInDb()
+  const addedBlog = blogsAtEnd[blogsAtEnd.length - 1]
 
   expect(addedBlog.likes).toBe(0)
 
@@ -102,9 +101,28 @@ test('if the title or url is missing, then return bad request', async () => {
     .send(newBlog2)
     .expect(400)
 
-  const responseAfter = await api.get('/api/blogs')
+  const blogsAtEnd = await helper.blogsInDb()  
 
-  expect(responseAfter.body).toHaveLength(lengthBefore)
+  expect(blogsAtEnd).toHaveLength(lengthBefore)
+})
+
+test('delete a single blog post resourse', async () => {
+  const blogsAtStart = await helper.blogsInDb()
+  const blogToDelete = blogsAtStart[0]
+
+  await api
+    .delete(`/api/blogs/${blogToDelete.id}`)
+    .expect(204)
+
+  const blogsAtEnd = await helper.blogsInDb()
+
+  expect(blogsAtEnd).toHaveLength(
+    helper.initialBlogs.length - 1
+  )
+
+  const contents = blogsAtEnd.map(b => b.title)
+
+  expect(contents).not.toContain(blogToDelete.title)
 })
 
 afterAll(async () => {
