@@ -46,25 +46,24 @@ const initialNotes = [
 
 beforeEach(async () => {
   await Blog.deleteMany({})
-  let noteObject = new Blog(initialNotes[0])
-  await noteObject.save()
-  noteObject = new Blog(initialNotes[1])
-  await noteObject.save()
-  noteObject = new Blog(initialNotes[2])
-  await noteObject.save()
-  noteObject = new Blog(initialNotes[3])
-  await noteObject.save()
-  noteObject = new Blog(initialNotes[4])
-  await noteObject.save()
-  noteObject = new Blog(initialNotes[5])
-  await noteObject.save()
+  let blogObject = new Blog(initialNotes[0])
+  await blogObject.save()
+  blogObject = new Blog(initialNotes[1])
+  await blogObject.save()
+  blogObject = new Blog(initialNotes[2])
+  await blogObject.save()
+  blogObject = new Blog(initialNotes[3])
+  await blogObject.save()
+  blogObject = new Blog(initialNotes[4])
+  await blogObject.save()
+  blogObject = new Blog(initialNotes[5])
+  await blogObject.save()
 })
 
-test('blogs are returned as json', async () => {
-  await api
-    .get('/api/blogs')
-    .expect(200)
-    .expect('Content-Type', /application\/json/)
+test('the correct amount of blogs are returned as json', async () => {
+  const response = await api.get('/api/blogs').expect(200).expect('Content-Type', /application\/json/)
+
+  expect(response.body).toHaveLength(6)
 })
 
 afterAll(async () => {
