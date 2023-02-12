@@ -5,7 +5,7 @@ const app = require('../app')
 const api = supertest(app)
 const Blog = require('../models/blog')
 
-const initialNotes = [
+const initialBlogs = [
   {
     title: "React patterns",
     author: "Michael Chan",
@@ -46,17 +46,17 @@ const initialNotes = [
 
 beforeEach(async () => {
   await Blog.deleteMany({})
-  let blogObject = new Blog(initialNotes[0])
+  let blogObject = new Blog(initialBlogs[0])
   await blogObject.save()
-  blogObject = new Blog(initialNotes[1])
+  blogObject = new Blog(initialBlogs[1])
   await blogObject.save()
-  blogObject = new Blog(initialNotes[2])
+  blogObject = new Blog(initialBlogs[2])
   await blogObject.save()
-  blogObject = new Blog(initialNotes[3])
+  blogObject = new Blog(initialBlogs[3])
   await blogObject.save()
-  blogObject = new Blog(initialNotes[4])
+  blogObject = new Blog(initialBlogs[4])
   await blogObject.save()
-  blogObject = new Blog(initialNotes[5])
+  blogObject = new Blog(initialBlogs[5])
   await blogObject.save()
 })
 
@@ -90,8 +90,59 @@ test('post creates new blog and adds to the list', async () => {
 
   const contents = response.body.map(r => r.title)
 
-  expect(response.body).toHaveLength(initialNotes.length + 1)
-  expect(contents).toContain('Microservice Architecture')
+  expect(response.body).toHaveLength(initialBlogs.length + 1)
+  expect(contents).toContainEqual('Microservice Architecture')
+})
+
+test('if the posted blog lacks likes, then it is set to 0', async () => {
+  const newBlog = {
+    title: "UFO and Chupacabras",
+    author: "Uma Alien",
+    url: "https://uma.com/articles/ufo-and-chupacabras.html",
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(201)
+    .expect('Content-Type', /application\/json/)
+
+  const response = await api.get('/api/blogs')
+  const addedBlog = response.body[response.body.length - 1]
+
+  expect(addedBlog.likes).toBe(0)
+
+})
+
+test('if the title or url is missing, then return bad request', async () => {
+  const responseBafore = await api.get('/api/blogs')
+  const lengthBefore = responseBafore.body.length
+
+  const newBlog1 = {
+    author: "Uma Alien",
+    url: "https://uma.com/articles/ufo-and-chupacabras.html",
+    likes: 3
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog1)
+    .expect(400)
+
+  const newBlog2 = {
+    title: "Analyzing Trends in Movie Industry",
+    author: "Filma Cinema",
+    likes: 1
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog2)
+    .expect(400)
+
+  const responseAfter = await api.get('/api/blogs')
+
+  expect(responseAfter.body).toHaveLength(lengthBefore)
 })
 
 afterAll(async () => {
