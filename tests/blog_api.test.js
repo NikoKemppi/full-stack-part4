@@ -66,10 +66,32 @@ test('the correct amount of blogs are returned as json', async () => {
   expect(response.body).toHaveLength(6)
 })
 
-test('blogs have identifier id', async() => {
+test('blogs have identifier id', async () => {
   const response = await api.get('/api/blogs')
 
   expect(response.body[0].id).toBeDefined()
+})
+
+test('post creates new blog and adds to the list', async () => {
+  const newBlog = {
+    title: "Microservice Architecture",
+    author: "Michael Fonder",
+    url: "https://michaelfonder.com/articles/microservices.html",
+    likes: 8,
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(201)
+    .expect('Content-Type', /application\/json/)
+
+  const response = await api.get('/api/blogs')
+
+  const contents = response.body.map(r => r.title)
+
+  expect(response.body).toHaveLength(initialNotes.length + 1)
+  expect(contents).toContain('Microservice Architecture')
 })
 
 afterAll(async () => {
