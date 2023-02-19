@@ -5,9 +5,18 @@ const app = require('../app')
 
 const api = supertest(app)
 const Blog = require('../models/blog')
+const jwt = require('jsonwebtoken')
+const User = require('../models/user')
+const bcrypt = require('bcrypt')
 
 beforeEach(async () => {
   await Blog.deleteMany({})
+  await User.deleteMany({})
+
+  const passwordHash = await bcrypt.hash('salaisuus', 10)
+  const user = new User({ username: 'kauttajat', passwordHash })
+  await user.save()
+
   let blogObject = new Blog(helper.initialBlogs[0])
   await blogObject.save()
   blogObject = new Blog(helper.initialBlogs[1])
@@ -35,6 +44,14 @@ test('blogs have identifier id', async () => {
 })
 
 test('post creates new blog and adds to the list', async () => {
+  const response = await api
+    .post('/api/login')
+    .send({ username: "kauttajat", password: "salaisuus"})
+    .expect(200)
+    .expect('Content-Type', /application\/json/)
+
+  const token = "Bearer " + response.body.token
+
   const newBlog = {
     title: "Microservice Architecture",
     author: "Michael Fonder",
@@ -45,6 +62,7 @@ test('post creates new blog and adds to the list', async () => {
   await api
     .post('/api/blogs')
     .send(newBlog)
+    .set({ Authorization: token })
     .expect(201)
     .expect('Content-Type', /application\/json/)
 
@@ -56,6 +74,14 @@ test('post creates new blog and adds to the list', async () => {
 })
 
 test('if the posted blog lacks likes, then it is set to 0', async () => {
+  const response = await api
+    .post('/api/login')
+    .send({ username: "kauttajat", password: "salaisuus"})
+    .expect(200)
+    .expect('Content-Type', /application\/json/)
+
+  const token = "Bearer " + response.body.token
+
   const newBlog = {
     title: "UFO and Chupacabras",
     author: "Uma Alien",
@@ -65,6 +91,7 @@ test('if the posted blog lacks likes, then it is set to 0', async () => {
   await api
     .post('/api/blogs')
     .send(newBlog)
+    .set({ Authorization: token })
     .expect(201)
     .expect('Content-Type', /application\/json/)
 
@@ -76,6 +103,14 @@ test('if the posted blog lacks likes, then it is set to 0', async () => {
 })
 
 test('if the title or url is missing, then return bad request', async () => {
+  const response = await api
+    .post('/api/login')
+    .send({ username: "kauttajat", password: "salaisuus"})
+    .expect(200)
+    .expect('Content-Type', /application\/json/)
+
+  const token = "Bearer " + response.body.token
+
   const responseBafore = await api.get('/api/blogs')
   const lengthBefore = responseBafore.body.length
 
@@ -88,6 +123,7 @@ test('if the title or url is missing, then return bad request', async () => {
   await api
     .post('/api/blogs')
     .send(newBlog1)
+    .set({ Authorization: token })
     .expect(400)
 
   const newBlog2 = {
@@ -99,6 +135,7 @@ test('if the title or url is missing, then return bad request', async () => {
   await api
     .post('/api/blogs')
     .send(newBlog2)
+    .set({ Authorization: token })
     .expect(400)
 
   const blogsAtEnd = await helper.blogsInDb()
@@ -107,17 +144,40 @@ test('if the title or url is missing, then return bad request', async () => {
 })
 
 test('delete a single blog post resourse', async () => {
+  const response = await api
+    .post('/api/login')
+    .send({ username: "kauttajat", password: "salaisuus"})
+    .expect(200)
+    .expect('Content-Type', /application\/json/)
+
+  const token = "Bearer " + response.body.token
+
+  const newBlog = {
+    title: "Tolkien, Rowling and British Fantasy",
+    author: "Sophia Hollywood",
+    url: "https://britishcultures.com/articles/fantasy.html",
+    likes: 8,
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .set({ Authorization: token })
+    .expect(201)
+    .expect('Content-Type', /application\/json/)
+
   const blogsAtStart = await helper.blogsInDb()
-  const blogToDelete = blogsAtStart[0]
+  const blogToDelete = blogsAtStart[blogsAtStart.length - 1]
 
   await api
     .delete(`/api/blogs/${blogToDelete.id}`)
+    .set({ Authorization: token })
     .expect(204)
 
   const blogsAtEnd = await helper.blogsInDb()
 
   expect(blogsAtEnd).toHaveLength(
-    helper.initialBlogs.length - 1
+    blogsAtStart.length - 1
   )
 
   const contents = blogsAtEnd.map(b => b.title)
@@ -141,6 +201,21 @@ test('update an already existing blog', async () => {
   const blogsAtEnd = await helper.blogsInDb()
   const blogAfterUpdate = blogsAtEnd[0]
   expect(blogAfterUpdate.likes).toBe(15)
+})
+
+test('adding a blog fails if a token is not provided', async () => {
+  const newBlog = {
+    title: "Joe-Joe Blog",
+    author: "Joe Weehoo",
+    url: "https://blogit.com/blogs/joejoeblog",
+    likes: 2,
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(401)
+    .expect('Content-Type', /application\/json/)
 })
 
 afterAll(async () => {
