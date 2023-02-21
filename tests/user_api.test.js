@@ -47,20 +47,24 @@ describe('when there is initially one user in db', () => {
       name: 'Jussi Loukko',
     }
     const newUser2 = {
-      username: 'shasha',
-      password: 'z',
+      username: 'z',
+      password: 'shasha',
       name: 'Shark Shoes',
     }
 
-    await api
+    const response1 = await api
       .post('/api/users')
       .send(newUser1)
       .expect(400)
-    await api
+
+    expect(response1.body).toEqual({error: "User validation failed: username: Path `username` is required."})
+
+    const response2 = await api
       .post('/api/users')
       .send(newUser2)
       .expect(400)
 
+    expect(response2.body).toEqual({error: "User validation failed: username: Path `username` (`z`) is shorter than the minimum allowed length (3)."})
 
     const usersAtEnd = await helper.usersInDb()
     expect(usersAtEnd).toHaveLength(usersAtStart.length)
@@ -79,14 +83,19 @@ describe('when there is initially one user in db', () => {
       name: 'Shark Shoes',
     }
 
-    await api
+    const response1 = await api
       .post('/api/users')
       .send(newUser1)
       .expect(400)
-    await api
+
+    expect(response1.body).toEqual({ error: "The password doesn't exist" })
+
+    const response2 = await api
       .post('/api/users')
       .send(newUser2)
       .expect(400)
+
+    expect(response2.body).toEqual({ error: "The password is too short" })
 
     const usersAtEnd = await helper.usersInDb()
     expect(usersAtEnd).toHaveLength(usersAtStart.length)
